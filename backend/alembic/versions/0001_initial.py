@@ -1,7 +1,7 @@
 """Initial schema."""
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0001_initial"
@@ -44,4 +44,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("webhook_events")
     op.drop_table("inboxes")
-
