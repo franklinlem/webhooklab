@@ -19,7 +19,7 @@ from .security import hash_token, ip_hint, mask_headers, new_token
 settings = get_settings()
 redis = Redis.from_url(settings.redis_url, decode_responses=True)
 
-APP_VERSION = "0.1.1"
+APP_VERSION = "0.1.2"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):

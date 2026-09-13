@@ -2,7 +2,7 @@
 
 Receba e inspecione webhooks em tempo real em um ambiente próprio. O MVP cria endpoints privados sem cadastro, registra as últimas 100 requisições e elimina eventos antigos automaticamente.
 
-## Recursos da v0.1.1
+## Recursos da v0.1.2
 
 - Endpoint exclusivo com token criptograficamente aleatório.
 - Métodos `GET`, `POST`, `PUT`, `PATCH`, `DELETE` e `OPTIONS`.
@@ -107,7 +107,7 @@ Se a senha do PostgreSQL contiver caracteres especiais de URL, aplique URL encod
 - Domínio sugerido: `https://webhook.franklem.uk`.
 - Health check: `/api/health`.
 - Código esperado: `200`.
-- Resposta esperada: `{"status":"ok","version":"0.1.1"}`.
+- Resposta esperada: `{"status":"ok","version":"0.1.2"}`.
 
 Cadastre essa URL no Uptime Kuma e envie alertas pelo Telegram já configurado no laboratório.
 
