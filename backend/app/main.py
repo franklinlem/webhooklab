@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -18,8 +19,10 @@ from .security import hash_token, ip_hint, mask_headers, new_token
 
 settings = get_settings()
 redis = Redis.from_url(settings.redis_url, decode_responses=True)
+logger = logging.getLogger(__name__)
 
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.3"
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -40,7 +43,7 @@ async def cleanup_expired_events() -> None:
                 await session.commit()
         except Exception:
             # A falha será tentada novamente; nunca inclui conteúdo de eventos nos logs.
-            pass
+            logger.exception("Falha ao limpar eventos expirados")
         await asyncio.sleep(3600)
 
 
