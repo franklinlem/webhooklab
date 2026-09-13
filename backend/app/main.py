@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 APP_VERSION = "0.1.2"
 
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     cleanup_task = asyncio.create_task(cleanup_expired_events())
@@ -40,7 +41,7 @@ async def cleanup_expired_events() -> None:
             async with SessionLocal() as session:
                 await session.execute(delete(WebhookEvent).where(WebhookEvent.received_at < cutoff))
                 await session.commit()
-        except Exception:  # noqa: BLE001
+        except Exception:
             # A falha será tentada novamente; nunca inclui conteúdo de eventos nos logs.
             logger.exception("Falha ao limpar eventos expirados")
         await asyncio.sleep(3600)
