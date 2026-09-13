@@ -1,6 +1,8 @@
 import { CreateInbox } from "./ui/create-inbox";
 import Link from "next/link";
 
+import packageJson from "../package.json";
+
 export default function Home() {
   return (
     <main className="home-shell">
@@ -9,7 +11,7 @@ export default function Home() {
           <span className="brand-mark">W</span>
           <span>WebhookLab</span>
         </Link>
-        <span className="version">v0.1.0</span>
+        <span className="version">v{packageJson.version}</span>
       </header>
 
       <section className="hero">
