@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -18,6 +19,7 @@ from .security import hash_token, ip_hint, mask_headers, new_token
 
 settings = get_settings()
 redis = Redis.from_url(settings.redis_url, decode_responses=True)
+logger = logging.getLogger(__name__)
 
 APP_VERSION = "0.1.2"
 
@@ -38,9 +40,9 @@ async def cleanup_expired_events() -> None:
             async with SessionLocal() as session:
                 await session.execute(delete(WebhookEvent).where(WebhookEvent.received_at < cutoff))
                 await session.commit()
-        except Exception:
+        except Exception:  # noqa: BLE001
             # A falha será tentada novamente; nunca inclui conteúdo de eventos nos logs.
-            pass
+            logger.exception("Falha ao limpar eventos expirados")
         await asyncio.sleep(3600)
 
 
