@@ -4,7 +4,7 @@ sqlalchemy[asyncio]==2.0.43
 asyncpg==0.31.0
 redis==6.4.0
 pydantic-settings==2.10.1
-alembic==1.16.5
+alembic==1.19.2
 python-multipart==0.0.32
 pytest==8.4.1
 pytest-asyncio==1.1.0
