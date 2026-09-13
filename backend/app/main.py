@@ -19,6 +19,7 @@ from .security import hash_token, ip_hint, mask_headers, new_token
 settings = get_settings()
 redis = Redis.from_url(settings.redis_url, decode_responses=True)
 
+APP_VERSION = "0.1.1"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -45,7 +46,7 @@ async def cleanup_expired_events() -> None:
 
 app = FastAPI(
     title="WebhookLab API",
-    version="0.1.0",
+    version=APP_VERSION,
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
@@ -103,7 +104,7 @@ async def read_limited_body(request: Request) -> bytes:
 async def health(session: AsyncSession = Depends(get_session)):
     await session.execute(text("SELECT 1"))
     await redis.ping()
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": APP_VERSION}
 
 
 @app.post("/api/inboxes", response_model=InboxCreated, status_code=201)
