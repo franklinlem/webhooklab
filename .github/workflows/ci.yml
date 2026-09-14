@@ -39,6 +39,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
 
   containers:
@@ -50,4 +51,3 @@ jobs:
           POSTGRES_PASSWORD: ci-database-password
           DATABASE_URL: postgresql+asyncpg://webhooklab:ci-database-password@postgres:5432/webhooklab
           TOKEN_SECRET: ci-only-secret-with-more-than-32-characters
-
