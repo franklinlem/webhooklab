@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 type EventItem = {
@@ -47,15 +48,46 @@ function formatDate(value: string) {
 }
 
 export function InboxDashboard({ token }: { token: string }) {
+  const router = useRouter();
   const [inbox, setInbox] = useState<Inbox | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [query, setQuery] = useState("");
+  const [method, setMethod] = useState("ALL");
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState("");
+
+  const methods = useMemo(
+    () => [...new Set(inbox?.events.map((event) => event.method) ?? [])].sort(),
+    [inbox],
+  );
+
+  const filteredEvents = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+    return (inbox?.events ?? []).filter((event) => {
+      if (method !== "ALL" && event.method !== method) return false;
+      if (!normalizedQuery) return true;
+      const searchable = [
+        event.method,
+        event.path,
+        event.body,
+        JSON.stringify(event.query),
+        JSON.stringify(event.headers),
+      ].join(" ").toLocaleLowerCase("pt-BR");
+      return searchable.includes(normalizedQuery);
+    });
+  }, [inbox, method, query]);
 
   const selected = useMemo(
-    () => inbox?.events.find((event) => event.id === selectedId) ?? inbox?.events[0] ?? null,
-    [inbox, selectedId],
+    () => filteredEvents.find((event) => event.id === selectedId) ?? filteredEvents[0] ?? null,
+    [filteredEvents, selectedId],
   );
 
   useEffect(() => {
@@ -79,6 +111,18 @@ export function InboxDashboard({ token }: { token: string }) {
     });
     return () => stream.close();
   }, [token]);
+
+  useEffect(() => {
+    if (!deleteOpen) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && !deleting) {
+        setDeleteOpen(false);
+        setDeleteConfirmation("");
+      }
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [deleteOpen, deleting]);
 
   async function copyUrl() {
     if (!inbox) return;
@@ -104,6 +148,44 @@ export function InboxDashboard({ token }: { token: string }) {
     }
   }
 
+  async function saveName(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!nameDraft.trim()) return;
+    setSavingName(true);
+    setActionError("");
+    try {
+      const response = await fetch(`/api/inboxes/${token}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nameDraft }),
+      });
+      if (!response.ok) throw new Error("Não foi possível alterar o nome do endpoint.");
+      const data = await response.json() as { name: string };
+      setInbox((current) => current ? { ...current, name: data.name } : current);
+      setNameDraft(data.name);
+      setEditingName(false);
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Erro inesperado.");
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  async function deleteEndpoint() {
+    if (deleteConfirmation !== "EXCLUIR") return;
+    setDeleting(true);
+    setActionError("");
+    try {
+      const response = await fetch(`/api/inboxes/${token}`, { method: "DELETE" });
+      if (response.status !== 204) throw new Error("Não foi possível excluir o endpoint.");
+      router.replace("/");
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Erro inesperado.");
+      setDeleting(false);
+      setDeleteOpen(false);
+    }
+  }
+
   if (error) return <main className="state-screen"><h1>{error}</h1><Link href="/">Criar novo endpoint</Link></main>;
   if (!inbox) return <main className="state-screen"><div className="loader" /><p>Carregando painel…</p></main>;
 
@@ -111,24 +193,66 @@ export function InboxDashboard({ token }: { token: string }) {
     <main className="dashboard-shell">
       <header className="dashboard-header">
         <Link className="brand compact" href="/"><span className="brand-mark">W</span><span>WebhookLab</span></Link>
-        <div className={`connection ${connected ? "online" : "offline"}`}>
+        <div className={`connection ${connected ? "online" : "offline"}`} role="status" aria-live="polite">
           <span /> {connected ? "Tempo real conectado" : "Reconectando"}
         </div>
       </header>
 
       <section className="endpoint-bar">
         <div>
-          <span className="label">SEU ENDPOINT</span>
+          <span className="label">{inbox.name}</span>
           <code>{inbox.hook_url}</code>
         </div>
-        <button type="button" className="copy-button" onClick={copyUrl}>{copied ? "Copiado!" : "Copiar URL"}</button>
+        <div className="endpoint-actions">
+          <button type="button" className="copy-button" onClick={copyUrl}>{copied ? "Copiado!" : "Copiar URL"}</button>
+          <button
+            type="button"
+            className="copy-button"
+            onClick={() => { setNameDraft(inbox.name); setEditingName(true); setActionError(""); }}
+          >Editar nome</button>
+          <button type="button" className="copy-button danger-button" onClick={() => setDeleteOpen(true)}>Excluir endpoint</button>
+        </div>
       </section>
+
+      {editingName && (
+        <form className="edit-name-bar" onSubmit={saveName}>
+          <label htmlFor="edit-endpoint-name">Novo nome</label>
+          <input
+            id="edit-endpoint-name"
+            className="name-input"
+            value={nameDraft}
+            onChange={(event) => setNameDraft(event.target.value)}
+            minLength={1}
+            maxLength={80}
+            required
+            autoFocus
+          />
+          <button className="copy-button" type="submit" disabled={savingName || !nameDraft.trim()}>{savingName ? "Salvando…" : "Salvar"}</button>
+          <button className="text-button" type="button" onClick={() => setEditingName(false)}>Cancelar</button>
+        </form>
+      )}
+      {actionError && <p className="dashboard-error" role="alert">{actionError}</p>}
 
       <section className="workspace">
         <aside className="events-panel">
           <div className="panel-heading">
-            <div><h1>Requisições</h1><span>{inbox.events.length} de 100 eventos</span></div>
+            <div><h1>Requisições</h1><span aria-live="polite">{filteredEvents.length} visíveis de {inbox.events.length} eventos</span></div>
             {inbox.events.length > 0 && <button className="text-button danger" onClick={clearEvents}>Limpar</button>}
+          </div>
+          <div className="event-filters" role="search" aria-label="Filtrar requisições">
+            <label className="sr-only" htmlFor="event-search">Pesquisar requisições</label>
+            <input
+              id="event-search"
+              type="search"
+              placeholder="Pesquisar caminho, body ou header"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <label className="sr-only" htmlFor="method-filter">Filtrar por método</label>
+            <select id="method-filter" value={method} onChange={(event) => setMethod(event.target.value)}>
+              <option value="ALL">Todos</option>
+              {methods.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
           </div>
           <div className="event-list">
             {inbox.events.length === 0 ? (
@@ -138,7 +262,13 @@ export function InboxDashboard({ token }: { token: string }) {
                 <p>Envie uma chamada para o endpoint acima. Ela aparecerá aqui automaticamente.</p>
                 <code>{`curl -X POST '${inbox.hook_url}' -H 'Content-Type: application/json' -d '{"teste":true}'`}</code>
               </div>
-            ) : inbox.events.map((event) => (
+            ) : filteredEvents.length === 0 ? (
+              <div className="no-results">
+                <h2>Nenhuma requisição encontrada</h2>
+                <p>Ajuste a pesquisa ou o filtro por método.</p>
+                <button type="button" className="text-button" onClick={() => { setQuery(""); setMethod("ALL"); }}>Limpar filtros</button>
+              </div>
+            ) : filteredEvents.map((event) => (
               <button
                 type="button"
                 key={event.id}
@@ -176,6 +306,30 @@ export function InboxDashboard({ token }: { token: string }) {
         </article>
       </section>
       <footer className="dashboard-footer">Eventos expiram após {inbox.retention_hours} horas · Headers sensíveis são mascarados</footer>
+
+      {deleteOpen && (
+        <div className="dialog-backdrop" role="presentation">
+          <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-description">
+            <h2 id="delete-title">Excluir “{inbox.name}”?</h2>
+            <p id="delete-description">O endpoint e todos os eventos serão excluídos permanentemente. Digite <strong>EXCLUIR</strong> para confirmar.</p>
+            <label htmlFor="delete-confirmation">Confirmação</label>
+            <input
+              id="delete-confirmation"
+              className="name-input"
+              value={deleteConfirmation}
+              onChange={(event) => setDeleteConfirmation(event.target.value)}
+              autoFocus
+              autoComplete="off"
+            />
+            <div className="dialog-actions">
+              <button type="button" className="text-button" onClick={() => { setDeleteOpen(false); setDeleteConfirmation(""); }}>Cancelar</button>
+              <button type="button" className="copy-button danger-button" disabled={deleting || deleteConfirmation !== "EXCLUIR"} onClick={deleteEndpoint}>
+                {deleting ? "Excluindo…" : "Excluir permanentemente"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
