@@ -28,7 +28,7 @@ settings = get_settings()
 redis = Redis.from_url(settings.redis_url, decode_responses=True)
 logger = logging.getLogger(__name__)
 
-APP_VERSION = "0.1.4"
+APP_VERSION = "0.2.0"
 
 
 @asynccontextmanager
