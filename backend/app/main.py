@@ -14,14 +14,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .config import get_settings
 from .database import SessionLocal, get_session
 from .models import Inbox, WebhookEvent
-from .schemas import EventOut, InboxCreate, InboxCreated, InboxOut
+from .schemas import (
+    EventOut,
+    InboxCreate,
+    InboxCreated,
+    InboxOut,
+    InboxUpdate,
+    InboxUpdated,
+)
 from .security import hash_token, ip_hint, mask_headers, new_token
 
 settings = get_settings()
 redis = Redis.from_url(settings.redis_url, decode_responses=True)
 logger = logging.getLogger(__name__)
 
-APP_VERSION = "0.1.4"
+APP_VERSION = "0.2.0"
 
 
 @asynccontextmanager
@@ -144,6 +151,23 @@ async def get_inbox(token: str, session: AsyncSession = Depends(get_session)):
         retention_hours=settings.event_retention_hours,
         events=[EventOut.model_validate(event) for event in events],
     )
+
+
+@app.patch("/api/inboxes/{token}", response_model=InboxUpdated)
+async def update_inbox(token: str, payload: InboxUpdate, session: AsyncSession = Depends(get_session)):
+    inbox = await find_inbox(token, session)
+    inbox.name = payload.name
+    await session.commit()
+    return InboxUpdated(name=inbox.name)
+
+
+@app.delete("/api/inboxes/{token}", status_code=204)
+async def delete_inbox(token: str, session: AsyncSession = Depends(get_session)):
+    inbox = await find_inbox(token, session)
+    await session.execute(delete(WebhookEvent).where(WebhookEvent.inbox_id == inbox.id))
+    await session.delete(inbox)
+    await session.commit()
+    return Response(status_code=204)
 
 
 @app.delete("/api/inboxes/{token}/events", status_code=204)
