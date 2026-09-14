@@ -2,7 +2,7 @@
 
 Receba e inspecione webhooks em tempo real em um ambiente próprio. O MVP cria endpoints privados sem cadastro, registra as últimas 100 requisições e elimina eventos antigos automaticamente.
 
-## Recursos da v0.1.4
+## Recursos da v0.2.0
 
 - Endpoint exclusivo com token criptograficamente aleatório.
 - Métodos `GET`, `POST`, `PUT`, `PATCH`, `DELETE` e `OPTIONS`.
@@ -63,6 +63,21 @@ curl -X POST 'http://localhost:3000/hook/SEU_TOKEN' \
   -d '{"origem":"teste","status":"ok"}'
 ```
 
+## API de gerenciamento de endpoints
+
+- `POST /api/inboxes`: cria um endpoint. Envie `{"name":"Meu endpoint"}`; o nome é opcional para manter compatibilidade com clientes anteriores.
+- `GET /api/inboxes/{token}`: consulta o endpoint e seus eventos.
+- `PATCH /api/inboxes/{token}`: altera o nome sem modificar o token. Envie `{"name":"Novo nome"}`.
+- `DELETE /api/inboxes/{token}`: exclui permanentemente o endpoint e todos os eventos associados. URLs excluídas retornam `404`.
+
+A interface permite pesquisar eventos, combinar pesquisa e filtro por método, acompanhar a contagem filtrada e excluir endpoints com confirmação textual.
+
+## Roadmap
+
+- [x] v0.2.0 — nomes personalizados, gerenciamento de endpoints e filtros.
+- [ ] v0.3.0 — melhorias de observabilidade e operação.
+- [ ] v0.4.0 — recursos avançados de eventos (exportação e replay).
+
 ## Implantação no Coolify
 
 ### 1. Repositório e branches
@@ -107,7 +122,7 @@ Se a senha do PostgreSQL contiver caracteres especiais de URL, aplique URL encod
 - Domínio sugerido: `https://webhook.franklem.uk`.
 - Health check: `/api/health`.
 - Código esperado: `200`.
-- Resposta esperada: `{"status":"ok","version":"0.1.4"}`.
+- Resposta esperada: `{"status":"ok","version":"0.2.0"}`.
 
 Cadastre essa URL no Uptime Kuma e envie alertas pelo Telegram já configurado no laboratório.
 
