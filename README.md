@@ -91,9 +91,9 @@ Crie um repositório GitHub chamado `webhooklab` e envie este conteúdo. Use:
 ### 2. Recurso no Coolify
 
 1. Crie um novo recurso **Docker Compose** a partir do repositório GitHub.
-2. Selecione o arquivo `/docker-compose.yml`.
+2. Selecione o arquivo `/docker-compose.coolify.yml`. O arquivo `/docker-compose.yml` mantém a porta 3000 publicada para desenvolvimento local.
 3. Para homologação, escolha a branch `develop`.
-4. Publique apenas a porta `3000` do serviço `frontend`.
+4. Associe o domínio ao serviço `frontend`, porta interna `3000`. O Compose do Coolify usa `expose`, sem reservar portas no host, permitindo homologação e produção no mesmo servidor.
 5. Não exponha PostgreSQL, Redis ou a porta `8000` diretamente na internet.
 
 ### 3. Variáveis de ambiente
