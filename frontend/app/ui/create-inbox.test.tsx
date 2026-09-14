@@ -49,3 +49,4 @@ describe("CreateInbox", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 });
+// Coverage for the endpoint naming flow.
